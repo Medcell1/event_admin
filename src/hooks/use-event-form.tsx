@@ -3,12 +3,19 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { openDB } from "idb";
 
+export type Category = {
+  _id: string;
+  name: string;
+};
+
 export type Ticket = {
   id: string;
   name: string;
   price: number;
-  quantity: number;
   description?: string;
+  visibility: "public" | "private";
+  codePrefix: string;
+  totalSupply: number;
 };
 
 export type EventFormData = {
@@ -17,7 +24,7 @@ export type EventFormData = {
   time: string;
   location: string;
   description: string;
-  category: string[];
+  category: Category[];
   bannerImage?: File | null;
   tickets: Ticket[];
 };
@@ -70,7 +77,7 @@ async function getImageFromIndexedDB(): Promise<File | null> {
   return (await db.get(STORE_NAME, "bannerImage")) || null;
 }
 
-async function removeImageFromIndexedDB() {
+export async function removeImageFromIndexedDB() {
   const db = await initDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
@@ -79,6 +86,8 @@ async function removeImageFromIndexedDB() {
 
 export function EventFormProvider({ children }: { children: ReactNode }) {
   const [formData, setFormData] = useState<EventFormData>(defaultFormData);
+
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -90,24 +99,28 @@ export function EventFormProvider({ children }: { children: ReactNode }) {
           setFormData(parsedData);
         }
       }
+      setIsLoaded(true);
     };
     loadData();
   }, []);
+  
 
   useEffect(() => {
-    const saveData = async () => {
+    const timeout = setTimeout(async () => {
       let dataToStore = { ...formData };
-
+  
       if (dataToStore.bannerImage instanceof File) {
         await saveImageToIndexedDB(dataToStore.bannerImage);
-        dataToStore.bannerImage = undefined; 
+        dataToStore.bannerImage = undefined;
       }
-
+  
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore));
-    };
-
-    saveData();
+    }, 500); 
+  
+    return () => clearTimeout(timeout);
   }, [formData]);
+  
+  if (!isLoaded) return null; 
 
   const updateEventParameters = (data: Partial<EventFormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -141,16 +154,7 @@ export function EventFormProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <EventFormContext.Provider
-      value={{
-        formData,
-        updateEventParameters,
-        addTicket,
-        editTicket,
-        deleteTicket,
-        resetForm,
-      }}
-    >
+    <EventFormContext.Provider value={{ formData, updateEventParameters, addTicket, editTicket, deleteTicket, resetForm }}>
       {children}
     </EventFormContext.Provider>
   );

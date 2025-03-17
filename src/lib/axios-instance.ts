@@ -6,20 +6,27 @@ export const API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
 const isDev = process.env.NODE_ENV === "development"; 
 
-// Centralized logging function
 const log = (...args: any[]) => {
   if (isDev) console.log(...args);
 };
 
 const logRequest = (config: InternalAxiosRequestConfig) => {
+  let loggedData = config.data;
+
+  if (config.data instanceof FormData) {
+    loggedData = {};
+    config.data.forEach((value, key) => {
+      loggedData[key] = value;
+    });
+  }
+
   log("🔵 Request:", {
     URL: `${config.baseURL}${config.url}`,
     Method: config.method,
     Headers: config.headers,
-    Data: config.data,
+    Data: loggedData,
   });
 };
-
 const logResponse = (response: AxiosResponse) => {
   log("🟢 Response:", {
     URL: `${response.config.baseURL}${response.config.url}`,

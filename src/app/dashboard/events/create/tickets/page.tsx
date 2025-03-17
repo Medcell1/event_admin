@@ -19,6 +19,13 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { Ticket } from "@/hooks/use-event-form"
@@ -26,10 +33,14 @@ import { useEventForm } from "@/hooks/use-event-form"
 import { ROUTES } from "@/constants/routes"
 
 const ticketFormSchema = z.object({
-  name: z.string().min(2, "Ticket name must be at least 2 characters"),
+  name: z.string().min(2, "Ticket name must be at least 3 characters"),
   price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Please enter a valid price"),
-  quantity: z.string().regex(/^\d+$/, "Please enter a valid quantity"),
-  description: z.string().optional(),
+  description: z.string().min(2, "Decscription must be at least 10 characters"),
+  visibility: z.enum(["public", "private"], {
+    required_error: "Please select a visibility option",
+  }),
+  codePrefix: z.string().min(3, "Code prefix must be at least 2 characters"),
+  totalSupply: z.string().regex(/^\d+$/, "Please enter a valid total supply"),
 })
 
 export default function TicketsPage() {
@@ -43,8 +54,10 @@ export default function TicketsPage() {
     defaultValues: {
       name: "",
       price: "",
-      quantity: "",
       description: "",
+      visibility: "public",
+      codePrefix: "",
+      totalSupply: "",
     },
   })
 
@@ -53,13 +66,13 @@ export default function TicketsPage() {
       editTicket(editingTicket.id, {
         ...values,
         price: Number.parseFloat(values.price),
-        quantity: Number.parseInt(values.quantity),
+        totalSupply: Number.parseInt(values.totalSupply),
       })
     } else {
       addTicket({
         ...values,
         price: Number.parseFloat(values.price),
-        quantity: Number.parseInt(values.quantity),
+        totalSupply: Number.parseInt(values.totalSupply),
       })
     }
     setIsDialogOpen(false)
@@ -72,8 +85,10 @@ export default function TicketsPage() {
     form.reset({
       name: ticket.name,
       price: ticket.price.toString(),
-      quantity: ticket.quantity.toString(),
       description: ticket.description,
+      visibility: ticket.visibility,
+      codePrefix: ticket.codePrefix,
+      totalSupply: ticket.totalSupply.toString(),
     })
     setIsDialogOpen(true)
   }
@@ -130,24 +145,64 @@ export default function TicketsPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="quantity"
+                    name="visibility"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Quantity</FormLabel>
+                        <FormLabel>Visibility</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select visibility" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="public">Public</SelectItem>
+                            <SelectItem value="private">Private</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="totalSupply"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Total Supply</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="100" {...field} />
+                          <Input type="number" placeholder="1000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="codePrefix"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Code Prefix</FormLabel>
+                        <FormControl>
+                          <Input placeholder="EVT" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
                 <FormField
                   control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Add any additional details about this ticket type..." {...field} />
                       </FormControl>
@@ -182,7 +237,9 @@ export default function TicketsPage() {
               <TableRow>
                 <TableHead>Ticket Name</TableHead>
                 <TableHead>Price</TableHead>
-                <TableHead>Quantity</TableHead>
+                <TableHead>Visibility</TableHead>
+                <TableHead>Code Prefix</TableHead>
+
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -191,7 +248,9 @@ export default function TicketsPage() {
                 <TableRow key={ticket.id}>
                   <TableCell className="font-medium">{ticket.name}</TableCell>
                   <TableCell>${ticket.price.toFixed(2)}</TableCell>
-                  <TableCell>{ticket.quantity}</TableCell>
+                  <TableCell className="capitalize">{ticket.visibility}</TableCell>
+                  <TableCell className="capitalize">{ticket.codePrefix}</TableCell>
+
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -236,4 +295,3 @@ export default function TicketsPage() {
     </div>
   )
 }
-

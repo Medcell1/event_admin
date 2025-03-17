@@ -1,20 +1,31 @@
+// src/actions/auth.ts
 import { SignUpDTO } from "@/@types";
 import createAxiosInstance from "@/lib/axios-instance";
 import { signIn, signOut } from "next-auth/react";
+import { Validator, required, minLength, email } from "@/utils/validation";
 
 const api = createAxiosInstance();
+
 export const signup = async (data: SignUpDTO) => {
   try {
-    if (!data.email) throw new Error("Email is required");
-    if (!data.password) throw new Error("Password is required");
+    const validator = new Validator(data, {
+      email: email(),
+      password: (value) => {
+        const requiredCheck = required("Password")(value);
+        if (requiredCheck) return requiredCheck;
+        return minLength("Password", 6)(value);
+      },
+      name: required("Name"),
+      userType: required("User Type"),
+    });
 
-    const formData = new FormData();
-    formData.append("email", data.email);
-    formData.append("password", data.password);
+    if (validator.hasErrors()) {
+      throw new Error(validator.getFirstError()!);
+    }
 
-    const response = await api.post("/auth/signup", formData, {
+    const response = await api.post("/auth/signup", data, {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": "application/json",
       },
     });
 
@@ -26,8 +37,17 @@ export const signup = async (data: SignUpDTO) => {
 };
 
 export const login = async (email: string, password: string) => {
-  if (!email) return { error: "Email is required" };
-  if (!password) return { error: "Password is required" };
+  const validator = new Validator(
+    { email, password },
+    {
+      email: required("Email"),
+      password: required("Password"),
+    }
+  );
+
+  if (validator.hasErrors()) {
+    return { error: validator.getFirstError()! };
+  }
 
   try {
     const result = await signIn("credentials", {

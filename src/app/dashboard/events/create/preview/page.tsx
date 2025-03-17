@@ -10,17 +10,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useEventForm } from "@/hooks/use-event-form"
 import { ROUTES } from "@/constants/routes"
+import { EventRequest, TicketTypeRequest } from "@/@types"
+import TicketTypesService from "@/actions/events/tickettype"
+import EventService from "@/actions/events"
+import { getCurrentUser } from "@/lib/get-session"
+import { toast } from "sonner"
 
 export default function PreviewPage() {
   const router = useRouter()
-  const { formData } = useEventForm()
+  const { formData, resetForm } = useEventForm()
   const [showFullImage, setShowFullImage] = useState(false)
+  const [ticketIds, setTicketIds] = useState<string[]>([]);
+  const handlePublish = async () => {
+    try {
+      const session = await getCurrentUser();
+      console.log("Publishing event:", formData);
 
-  const handlePublish = () => {
-    // Here you would typically send the data to your backend
-    console.log("Publishing event:", formData)
-    alert("Event published successfully!")
-  }
+      const combinedDateTime = new Date(formData.date!);
+      const [hours, minutes] = formData.time.split(":").map(Number); combinedDateTime.setHours(hours, minutes, 0, 0);
+
+      const tickets: string[] = [];
+      for (const ticket of formData.tickets) {
+        const ticketReq = {
+          name: ticket.name,
+          price: ticket.price,
+          codePrefix: ticket.codePrefix,
+          description: ticket.description,
+          visibility: ticket.visibility,
+          totalSupply: ticket.totalSupply,
+        } as TicketTypeRequest;
+        const ticketCreated = await TicketTypesService.create(ticketReq);
+        tickets.push(ticketCreated._id);
+      }
+      setTicketIds(tickets);
+
+      const eventReq = {
+        name: formData.name,
+        categories: formData.category.map((category) => category._id),
+        date: combinedDateTime.toISOString(),
+        description: formData.description,
+        files: [formData.bannerImage!], 
+        location: formData.location,
+        owner: session?.user?.id,
+        ticketTypes: ticketIds,
+      } as unknown as EventRequest;
+
+      await EventService.create(eventReq);
+      toast.success("Event Published Successfully", {
+        description: "Your Event has been successfully published",
+      });
+      router.replace(ROUTES.DASHBOARD.EVENTS.ROOT);
+    resetForm();
+    } catch (error) {
+      console.error("Error publishing event:", error);
+      toast.error("Failed to Publish Event", {
+        description: "Please try again.",
+      })
+    }
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,7 +99,7 @@ export default function PreviewPage() {
                 formData.category.map((category, index) => (
                   <Badge key={index} variant="secondary" className="text-sm">
                     <Tag className="h-3 w-3 mr-1" />
-                    {category}
+                    {category.name}
                   </Badge>
                 ))}
             </div>
@@ -98,7 +145,7 @@ export default function PreviewPage() {
                 >
                   <div>
                     <div className="font-medium">{ticket.name}</div>
-                    <div className="text-xs text-gray-500">{ticket.quantity} tickets available</div>
+                    <div className="text-xs text-gray-500">{ticket.totalSupply} tickets available</div>
                     {ticket.description && <div className="mt-1 text-xs text-gray-600">{ticket.description}</div>}
                   </div>
                   <Badge variant="secondary" className="text-sm px-2 py-1">

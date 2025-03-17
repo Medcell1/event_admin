@@ -11,9 +11,15 @@ import { Globe, Search, Bell, LogOut, User } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { logout, } from "@/actions/auth"
+import { useSession } from "next-auth/react"
+import { CustomUser } from "@/auth"
 
 export function TopBar() {
- 
+
+  const { data: session } = useSession();
+  const user = session?.user as CustomUser;
+  // console.log(`user===> ${user.userType}`);
+
   return (
     <header className="sticky top-0 z-10 w-full border-b bg-white dark:bg-gray-800 shadow-sm">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
@@ -39,7 +45,7 @@ export function TopBar() {
 
           <LanguagePicker />
 
-          <UserMenu />
+          <UserMenu user={user} />
         </div>
       </div>
     </header>
@@ -63,23 +69,28 @@ function LanguagePicker() {
   )
 }
 
-function UserMenu() {
-
+function UserMenu({ user }: Readonly<{ user: CustomUser | null }>) {
+  const getInitials = (name: string) => {
+    if (!name) return "";
+    const names = name.split(" ");
+    const initials = names.map((n) => n[0]).join("");
+    return initials.slice(0, 2).toUpperCase();
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
             <AvatarImage src="/api/placeholder/32/32" alt="User Avatar" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarFallback>{getInitials(user?.name ?? "")} </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <div className="flex items-center justify-start gap-2 p-2">
           <div className="flex flex-col space-y-1 leading-none">
-            <p className="font-medium">John Doe</p>
-            <p className="text-sm text-muted-foreground">Administrator</p>
+            <p className="font-medium">{user?.name}</p>
+            <p className="text-sm text-muted-foreground">{(user?.userType === "admin" ? "Admistrator" : user?.userType) ?? "Admistrator"}</p>
           </div>
         </div>
         <DropdownMenuSeparator />

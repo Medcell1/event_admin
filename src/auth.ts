@@ -3,15 +3,19 @@ import NextAuth, { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { AdapterUser } from "next-auth/adapters";
 
-interface CustomUser {
+export interface CustomUser {
   id: string;
   email: string;
+  name: string;
+  userType: string;
   token: string;
 }
 
 interface CustomSessionUser {
   id: string;
   email: string;
+  name: string;
+  userType: string;
   token: string;
 }
 
@@ -37,7 +41,8 @@ export const authConfig: NextAuthConfig = {
         token.id = customUser.id;
         token.email = customUser.email;
         token.token = customUser.token;
-      }
+        token.name = customUser.name;
+        token.userType = customUser.userType;      }
       return token;
     },
     async session({ session, token }) {
@@ -46,6 +51,8 @@ export const authConfig: NextAuthConfig = {
         id: token.id as string,
         token: token.token as string,
         email: token.email as string,
+        name: token.name as string,
+        userType: token.userType as string,
       } as CustomSessionUser & AdapterUser;
       return session;
     },
@@ -78,12 +85,12 @@ export const authConfig: NextAuthConfig = {
           const data = response.data;
 
           if (response.status === 200) {
-            // if (!data.id || !data.token) {
-            //   throw new Error("Invalid API response. Missing user ID or token.");
-            // }
+          
             return {
-              id: data.id || '',
-              email: data.email,
+              id: data.user._id,
+              email: data.user.email,
+              name:data.user.name,
+              userType:data.user.userType,
               token: data.token,
             } as CustomUser;
           } else {

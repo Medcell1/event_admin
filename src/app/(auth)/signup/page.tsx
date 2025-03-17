@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { signup } from "@/actions/auth";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertCircle } from "lucide-react";
+import { signup } from "@/actions/auth";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function SignupPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    userType: "admin",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,29 +27,30 @@ export default function SignupPage() {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
+  const handleUserTypeChange = (value: string) => {
+    setFormData({ ...formData, userType: value });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError("All fields are required.");
-      return;
-    }
-
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
-
     try {
       setLoading(true);
+      
       await signup({
+        name: formData.name,
         email: formData.email,
         password: formData.password,
+        userType: formData.userType,
       });
+      
       router.push("/login");
-    } catch (error) {
-      setError("Failed to create account. Please try again.");
+    } catch (error: any) {
+      setError(error.message || "Failed to create account. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -79,19 +82,32 @@ export default function SignupPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" placeholder="John Doe" required value={formData.name} onChange={handleChange} />
+            <Input id="name" placeholder="John Doe" value={formData.name} onChange={handleChange} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" required value={formData.email} onChange={handleChange} />
+            <Input id="email" type="email" placeholder="m@example.com" value={formData.email} onChange={handleChange} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="userType">User Type</Label>
+            <Select value={formData.userType} onValueChange={handleUserTypeChange} disabled>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="contributor">Contributor</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required value={formData.password} onChange={handleChange} />
+            <Input id="password" type="password" value={formData.password} onChange={handleChange} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input id="confirmPassword" type="password" required value={formData.confirmPassword} onChange={handleChange} />
+            <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} />
           </div>
           <Button className="w-full bg-primary hover:bg-primary/90" type="submit" disabled={loading}>
             {loading ? "Signing Up..." : "Sign Up"}

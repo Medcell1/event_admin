@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { CheckIcon, ChevronDown, XIcon, WandSparkles } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { CheckIcon, ChevronDown, XIcon, WandSparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
-interface Option {
-  value: string
-  label: string
+export interface Option {
+  value: string;
+  label: string;
 }
 
 const MultiSelectVariants = cva(
@@ -21,8 +21,7 @@ const MultiSelectVariants = cva(
     variants: {
       variant: {
         default: "bg-background hover:bg-accent hover:text-muted-foreground h-9 px-4 py-2",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-accent hover:text-secondary-foreground h-9 px-4 py-2",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-accent hover:text-secondary-foreground h-9 px-4 py-2",
         outline: "border border-input bg-background hover:bg-accent hover:text-muted-foreground h-9 px-4 py-2",
         ghost: "hover:bg-accent hover:text-muted-foreground h-9 px-4 py-2",
         link: "text-primary underline-offset-4 hover:underline h-9",
@@ -38,20 +37,21 @@ const MultiSelectVariants = cva(
       variant: "default",
       size: "default",
     },
-  },
-)
+  }
+);
 
 export interface MultiSelectProps extends React.HTMLAttributes<HTMLButtonElement> {
-  options: Option[]
-  onValueChange: (value: string[]) => void
-  defaultValue?: string[]
-  placeholder?: string
-  variant?: VariantProps<typeof MultiSelectVariants>["variant"]
-  animation?: number
-  maxCount?: number
-  modalPopover?: boolean
-  asChild?: boolean
+  options: Option[];
+  onValueChange: (value: string[]) => void;
+  defaultValue?: string[];
+  placeholder?: string;
+  variant?: VariantProps<typeof MultiSelectVariants>["variant"];
+  animation?: number;
+  maxCount?: number;
+  modalPopover?: boolean;
+  asChild?: boolean;
 }
+
 export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>(
   (
     {
@@ -67,27 +67,28 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
       className,
       ...props
     },
-    ref,
+    ref
   ) => {
     const [open, setOpen] = React.useState(false);
     const [value, setValue] = React.useState<string[]>(defaultValue);
 
-    React.useEffect(() => {
-      // Only call onValueChange if the value has changed
-      onValueChange(value);
-    }, [value, onValueChange]);
-
     const handleSelect = (item: string) => {
-      if (value.includes(item)) {
-        setValue((prev) => prev.filter((val) => val !== item));
-      } else {
-        setValue((prev) => [...prev, item]);
-      }
+      const newValue = value.includes(item)
+        ? value.filter((val) => val !== item)
+        : [...value, item];
+
+      setValue(newValue);
+      onValueChange(newValue); // Pass the updated array of strings
     };
 
     const handleClear = () => {
       setValue([]);
+      onValueChange([]);
     };
+
+    React.useEffect(() => {
+      setValue(defaultValue);
+    }, [defaultValue]);
 
     const selectedOptions = options.filter((option) => value.includes(option.value));
 
@@ -169,9 +170,7 @@ export const MultiSelect = React.forwardRef<HTMLButtonElement, MultiSelectProps>
         </PopoverContent>
       </Popover>
     );
-  },
+  }
 );
 
 MultiSelect.displayName = "MultiSelect";
-
-MultiSelect.displayName = "MultiSelect"

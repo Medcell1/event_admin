@@ -69,6 +69,20 @@ const TicketTypesService = {
       throw error;
     }
   },
+    /**
+   * Get a ticket type for a User By ID
+   * @param id The User ID
+   * @returns Ticket type data
+   */
+    getForUser: async (id: string): Promise<TicketType[]> => {
+      try {
+        const response = await api.get(`/ticketTypes/user/${id}`);
+        return response.data as TicketType[];
+      } catch (error) {
+        console.error(`Error fetching ticket type with ID ${id}:`, error);
+        throw error;
+      }
+    },
 
   /**
    * Update an existing ticket type

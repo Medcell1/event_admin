@@ -1,5 +1,6 @@
 import {  EventRequest } from "@/@types";
 import createAxiosInstance from "@/lib/axios-instance";
+import { getCurrentUser } from "@/lib/get-session";
 import { Validator, required } from "@/utils/validation";
 
 const api = createAxiosInstance();
@@ -78,20 +79,20 @@ const EventService = {
 //       throw error;
 //     }
 //   },
+
   /**
-   * Get all available events
+   * Get all available events for User
    * @returns Array of events
    */
   getUserEvents: async ({
-    userId,
     categories,
     searchTerm,
   }: {
-    userId: string;
     categories?: string[];
     searchTerm?: string;
   }): Promise<Event[]> => {
     try {
+      const session = await getCurrentUser();
       const params: Record<string, any> = {};
   
       if (categories && categories.length > 0) {
@@ -102,11 +103,11 @@ const EventService = {
         params.searchTerm = searchTerm;
       }
   
-      const response = await api.get(`/events/user/${userId}`, {
+      const response = await api.get(`/events/user/${session?.user?.id}`, {
         params,
       });
   
-      return response.data.events || [];
+      return response.data || [];
     } catch (error) {
       console.error("Error fetching events:", error);
       throw error;

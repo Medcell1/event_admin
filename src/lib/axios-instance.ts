@@ -24,6 +24,7 @@ const logRequest = (config: InternalAxiosRequestConfig) => {
     URL: `${config.baseURL}${config.url}`,
     Method: config.method,
     Headers: config.headers,
+    Params: config.params,
     Data: loggedData,
   });
 };

@@ -20,15 +20,20 @@ export default function PreviewPage() {
   const router = useRouter()
   const { formData, resetForm } = useEventForm()
   const [showFullImage, setShowFullImage] = useState(false)
-  const [ticketIds, setTicketIds] = useState<string[]>([]);
+  const [isPublishing, setIsPublishing] = useState(false) 
+
   const handlePublish = async () => {
+    setIsPublishing(true);
     try {
       const session = await getCurrentUser();
       console.log("Publishing event:", formData);
-
+  
+      // Combine date and time into a single Date object
       const combinedDateTime = new Date(formData.date!);
-      const [hours, minutes] = formData.time.split(":").map(Number); combinedDateTime.setHours(hours, minutes, 0, 0);
-
+      const [hours, minutes] = formData.time.split(":").map(Number);
+      combinedDateTime.setHours(hours, minutes, 0, 0);
+  
+      // Create tickets and collect their IDs
       const tickets: string[] = [];
       for (const ticket of formData.tickets) {
         const ticketReq = {
@@ -39,33 +44,42 @@ export default function PreviewPage() {
           visibility: ticket.visibility,
           totalSupply: ticket.totalSupply,
         } as TicketTypeRequest;
+  
+        // Create the ticket and store its ID
         const ticketCreated = await TicketTypesService.create(ticketReq);
         tickets.push(ticketCreated._id);
       }
-      setTicketIds(tickets);
-
+  
+      // Now that we have all ticket IDs, create the event
       const eventReq = {
         name: formData.name,
         categories: formData.category.map((category) => category._id),
         date: combinedDateTime.toISOString(),
         description: formData.description,
-        files: [formData.bannerImage!], 
+        files: [formData.bannerImage!],
         location: formData.location,
         owner: session?.user?.id,
-        ticketTypes: ticketIds,
+        ticketTypes: tickets, // Use the populated ticket IDs
       } as unknown as EventRequest;
-
+  
+      // Create the event
       await EventService.create(eventReq);
+  
+      // Show success toast
       toast.success("Event Published Successfully", {
         description: "Your Event has been successfully published",
       });
+  
+      // Redirect to the events page and reset the form
       router.replace(ROUTES.DASHBOARD.EVENTS.ROOT);
-    resetForm();
+      resetForm();
     } catch (error) {
       console.error("Error publishing event:", error);
       toast.error("Failed to Publish Event", {
         description: "Please try again.",
-      })
+      });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -167,9 +181,10 @@ export default function PreviewPage() {
           </Button>
           <Button
             onClick={handlePublish}
+            disabled={isPublishing}
             className="flex items-center bg-primary text-primary-foreground hover:bg-primary/90 text-sm"
           >
-            Publish Event <Send className="ml-1 h-3 w-3" />
+            {isPublishing ? "Publishing..." : "Publish Event"} <Send className="ml-1 h-3 w-3" />
           </Button>
         </div>
       </div>
@@ -197,4 +212,3 @@ export default function PreviewPage() {
     </div>
   )
 }
-

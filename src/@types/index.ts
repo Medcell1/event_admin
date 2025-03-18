@@ -22,6 +22,7 @@ export interface TicketType {
   createdBy: string;
   totalSupply: number;
   description: string;
+  soldOut: boolean;
 }
 //events
 export interface EventRequest {
@@ -39,4 +40,21 @@ export interface EventRequest {
 export interface EventCategory {
   _id:string;
   name: string;
+}
+
+
+export interface Event {
+  _id: string;
+  name: string;
+  owner: string;
+  description: string;
+  location: string;
+  visibility: "public" | "private";
+  date: string; 
+  mediaUrls: string[];
+  sales: {
+    ticketsSold: number;
+    ticketsScanned: number;
+    totalTicketSupply: number;
+  };
 }

@@ -5,10 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "firebasestorage.googleapis.com",
+        hostname: "**", // Allows all domains
       },
     ],
   },
 };
 
 export default nextConfig;
+//REMOVE ALLOW ALL DOMAINS

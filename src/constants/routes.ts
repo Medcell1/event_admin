@@ -14,6 +14,8 @@ export const ROUTES = {
     COMMANDES: "/dashboard/commandes",
     EVENTS: {
       ROOT: "/dashboard/events",
+      VIEW: (id: string) => `/dashboard/events/${id}`,
+
       CREATE: {
         PARAMETERS: "/dashboard/events/create/parameters",
         TICKETS: "/dashboard/events/create/tickets",
@@ -21,6 +23,11 @@ export const ROUTES = {
       },
     },
     TEAMS: "/dashboard/team",
+    SCAN: {
+      ROOT: "/dashboard/scan",
+      SCAN_EVENT: (id: string) => `/dashboard/scan/${id}`,
+    },
+
     VENDEURS: "/dashboard/vendeurs",
     RECHARGE: "/dashboard/recharge",
     NFC: "/dashboard/nfc",

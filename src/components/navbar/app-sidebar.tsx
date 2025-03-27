@@ -12,6 +12,7 @@ import {
   Radio,
   Ticket,
   Users2,
+  ScanBarcode,
 } from "lucide-react"
 
 import {
@@ -39,14 +40,14 @@ export const navItems = [
   { title: "Commandes", href: ROUTES.DASHBOARD.COMMANDES, icon: CircleDollarSign },
   { title: "Events", href: ROUTES.DASHBOARD.EVENTS.ROOT, icon: Ticket },
   { title: "Teams", href: ROUTES.DASHBOARD.TEAMS, icon: Users2 },
-  { title: "Vendeurs", href: ROUTES.DASHBOARD.VENDEURS, icon: Contact2 },
+  { title: "Scan", href: ROUTES.DASHBOARD.SCAN.ROOT, icon: ScanBarcode },
   { title: "Point de recharge", href: ROUTES.DASHBOARD.RECHARGE, icon: CreditCard },
   { title: "NFC wristband", href: ROUTES.DASHBOARD.NFC, icon: Radio },
   { title: "Messages", href: ROUTES.DASHBOARD.MESSAGES, icon: MessageCircle },
 ]
 
 export function AppSidebar() {
-  const { state, open } = useSidebar()
+  const {  open } = useSidebar()
 
   return (
     <Sidebar

@@ -28,12 +28,10 @@ export default function PreviewPage() {
       const session = await getCurrentUser();
       console.log("Publishing event:", formData);
   
-      // Combine date and time into a single Date object
       const combinedDateTime = new Date(formData.date!);
       const [hours, minutes] = formData.time.split(":").map(Number);
       combinedDateTime.setHours(hours, minutes, 0, 0);
   
-      // Create tickets and collect their IDs
       const tickets: string[] = [];
       for (const ticket of formData.tickets) {
         const ticketReq = {
@@ -45,12 +43,10 @@ export default function PreviewPage() {
           totalSupply: ticket.totalSupply,
         } as TicketTypeRequest;
   
-        // Create the ticket and store its ID
         const ticketCreated = await TicketTypesService.create(ticketReq);
         tickets.push(ticketCreated._id);
       }
   
-      // Now that we have all ticket IDs, create the event
       const eventReq = {
         name: formData.name,
         categories: formData.category.map((category) => category._id),
@@ -58,20 +54,17 @@ export default function PreviewPage() {
         description: formData.description,
         files: [formData.bannerImage!],
         location: formData.location,
-        owner: session?.user?.id,
-        ticketTypes: tickets, // Use the populated ticket IDs
+        owner: session?.user?.name,
+        ticketTypes: tickets, 
       } as unknown as EventRequest;
   
-      // Create the event
       await EventService.create(eventReq);
   
-      // Show success toast
       toast.success("Event Published Successfully", {
         description: "Your Event has been successfully published",
       });
   
-      // Redirect to the events page and reset the form
-      router.replace(ROUTES.DASHBOARD.EVENTS.ROOT);
+     router.replace(ROUTES.DASHBOARD.EVENTS.ROOT);
       resetForm();
     } catch (error) {
       console.error("Error publishing event:", error);

@@ -1,4 +1,4 @@
-import {  EventRequest } from "@/@types";
+import {  EventDetails, EventRequest } from "@/@types";
 import createAxiosInstance from "@/lib/axios-instance";
 import { getCurrentUser } from "@/lib/get-session";
 import { Validator, required } from "@/utils/validation";
@@ -87,17 +87,24 @@ const EventService = {
   getUserEvents: async ({
     categories,
     searchTerm,
+    page = 1,
+    limit = 10
   }: {
     categories?: string[];
     searchTerm?: string;
-  }): Promise<Event[]> => {
+    page?: number;
+    limit?: number;
+  }) => {
     try {
       const session = await getCurrentUser();
-      const params: Record<string, any> = {};
+      const params: Record<string, any> = {
+        page,
+        limit
+      };
   
       if (categories && categories.length > 0) {
         params.categories = categories.join(","); 
-       }
+      }
   
       if (searchTerm) {
         params.searchTerm = searchTerm;
@@ -107,7 +114,78 @@ const EventService = {
         params,
       });
   
-      return response.data || [];
+      const responseData = response.data || {};
+      
+      if (responseData.events && responseData.pagination) {
+        return {
+          events: responseData.events,
+          totalEvents: responseData.pagination.totalEvents,
+          totalPages: responseData.pagination.totalPages
+        };
+      }
+      
+      const events = Array.isArray(responseData) ? responseData : [];
+      return {
+        events,
+        totalEvents: events.length,
+        totalPages: Math.ceil(events.length / limit) || 1
+      };
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      throw error;
+    }
+  },
+    /**
+   * Get all available events for User Happening Today
+   * @returns Array of events
+   */
+  getUserEventsForToday: async ({
+    categories,
+    searchTerm,
+    page = 1,
+    limit = 10
+  }: {
+    categories?: string[];
+    searchTerm?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    try {
+      const session = await getCurrentUser();
+      const params: Record<string, any> = {
+        page,
+        limit
+      };
+  
+      if (categories && categories.length > 0) {
+        params.categories = categories.join(","); 
+      }
+  
+      if (searchTerm) {
+        params.searchTerm = searchTerm;
+      }
+  
+      const response = await api.get(`/events/user/${session?.user?.id}/today`, {
+        params,
+      });
+      
+    
+      const responseData = response.data || {};
+      
+      if (responseData.events && responseData.pagination) {
+        return {
+          events: responseData.events,
+          totalEvents: responseData.pagination.totalEvents,
+          totalPages: responseData.pagination.totalPages
+        };
+      }
+      
+      const events = Array.isArray(responseData) ? responseData : [];
+      return {
+        events,
+        totalEvents: events.length,
+        totalPages: Math.ceil(events.length / limit) || 1
+      };
     } catch (error) {
       console.error("Error fetching events:", error);
       throw error;
@@ -118,10 +196,10 @@ const EventService = {
    * @param id The event ID
    * @returns Event data
    */
-  getById: async (id: string): Promise<Event> => {
+  getById: async (id: string): Promise<EventDetails> => {
     try {
-      const response = await api.get(`/events/${id}`);
-      return response.data.event;
+      const response = await api.get(`/events/admin/view/${id}`);
+      return response.data;
     } catch (error) {
       console.error(`Error fetching event with ID ${id}:`, error);
       throw error;

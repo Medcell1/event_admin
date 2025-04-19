@@ -155,6 +155,7 @@ export interface TodayEvent {
   sales: EventSales
 }
 export interface ScanResponse {
+  alreadyScanned: any;
   success: boolean;
   message: string;
   ticket: {
@@ -182,4 +183,22 @@ export interface ScanResponse {
     ticketNumber: string;
     isScanned: boolean;
   };
+}
+export interface Contributor {
+  id: string;
+  name: string;
+}
+
+export interface Credentials {
+  username: string;
+  password: string;
+}
+
+export interface CollaboratorResponse {
+  success: boolean;
+  message: string;
+  statusCode?: number;
+  user?: any;
+  contributors?: Contributor[];
+  credentials?: Credentials;
 }

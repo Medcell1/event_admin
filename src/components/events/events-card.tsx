@@ -1,11 +1,9 @@
 "use client"
-import { ChevronRight, Calendar, MapPin, Eye, EyeOff, Clock } from "lucide-react"
+import { ChevronRight, Calendar,  Clock } from "lucide-react"
 import Image from "next/image"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useRouter } from "next/navigation"
 import { ROUTES } from "@/constants/routes"
 

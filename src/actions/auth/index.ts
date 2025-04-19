@@ -51,7 +51,7 @@ export const login = async (email: string, password: string) => {
 
   try {
     const result = await signIn("credentials", {
-      email,
+      identifier: email,
       password,
       redirect: false,
     });

@@ -1,55 +1,60 @@
-import Image from "next/image"
+"use client"
+
+import { Key, UserCog } from "lucide-react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { UserIcon } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { Contributor } from "@/@types"
 
-interface TeamMember {
-  id: number
-  name: string
-  role: string
-  image: string
+interface TeamMemberCardProps {
+  member: Contributor
+  onChangePassword: (member: Contributor) => void
 }
 
-export default function TeamMemberCard({ member }: { member: TeamMember }) {
+export default function TeamMemberCard({ member, onChangePassword }: TeamMemberCardProps) {
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part.charAt(0))
+      .join("")
+      .toUpperCase()
+  }
+
   return (
-    <Card className="group hover:shadow-md transition-shadow">
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className="h-12 w-12 relative rounded-full overflow-hidden flex-shrink-0">
-          {member.image ? (
-            <Image
-              src={member.image}
-              alt={member.name}
-              fill
-              className="object-cover"
-            />
-          ) : (
-            <div className="bg-muted h-full w-full flex items-center justify-center">
-              <UserIcon className="h-6 w-6 text-muted-foreground" />
+    <Card className="overflow-hidden transition-all hover:shadow-md">
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarFallback className="text-lg">{getInitials(member.name)}</AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-semibold truncate">{member.name}</h3>
+            <p className="text-sm text-muted-foreground">Contributor</p>
+            <div className="flex items-center mt-1">
+              <div className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+              <span className="text-xs text-muted-foreground">Active</span>
             </div>
-          )}
+          </div>
         </div>
-        <div className="min-w-0">
-          <h3 className="font-medium text-primary truncate">{member.name}</h3>
-          <p className="text-xs text-muted-foreground">{member.role}</p>
-        </div>
-        <Button variant="ghost" size="sm" className="ml-auto p-0 h-8 w-8">
-          <span className="sr-only">Edit</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-        </Button>
       </CardContent>
+      <CardFooter className="bg-muted/50 p-4 flex justify-between">
+        <Button variant="outline" size="sm" className="gap-1" onClick={() => onChangePassword(member)}>
+          <Key className="h-3.5 w-3.5" />
+          Reset Password
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <UserCog className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onChangePassword(member)}>Change Password</DropdownMenuItem>
+            <DropdownMenuItem className="text-red-600">Remove Access</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardFooter>
     </Card>
   )
 }

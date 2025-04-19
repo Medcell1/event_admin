@@ -58,6 +58,7 @@ const logError = (error: AxiosError) => {
 };
 
 const createAxiosInstance = (): AxiosInstance => {
+  
   const axiosInstance = axios.create({
     baseURL: API_URL,
   });

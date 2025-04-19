@@ -16,6 +16,8 @@ import {
     Ticket,
     Users,
     X,
+    ArrowRight,
+    Loader2,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -44,6 +46,7 @@ interface RecentScan {
 export default function ScanTicketsForEvent() {
     const params = useParams()
     const eventId = params.id as string
+    console.log(`eventiddddddyam--->${eventId}`)
 
     const [scanMode, setScanMode] = useState("camera")
     const [scanning, setScanning] = useState(false)
@@ -55,44 +58,178 @@ export default function ScanTicketsForEvent() {
     const [eventData, setEventData] = useState<EventDetails | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [scannerError, setScannerError] = useState<string | null>(null)
+    // New states for scan indicators
+    const [qrDetected, setQrDetected] = useState(false)
+    const [sendingToApi, setSendingToApi] = useState(false)
+    const [qrValue, setQrValue] = useState("")
 
     const videoRef = useRef<HTMLVideoElement>(null)
+    const canvasRef = useRef<HTMLCanvasElement>(null)
+    const streamRef = useRef<MediaStream | null>(null)
     const scannerIntervalRef = useRef<NodeJS.Timeout | null>(null)
-    const qrScannerRef = useRef<any>(null)
+
+    const updateEventDataSilently = async () => {
+        try {
+            // Don't set loading to true here
+            const data = await EventService.getById(eventId);
+            setEventData(data);
+            return data;
+        } catch (error) {
+            console.error("Error fetching event data:", error);
+            return null;
+        }
+    };
 
     // Initialize IndexedDB and load recent scans
     useEffect(() => {
         const initialize = async () => {
             await initDB()
-            const storedScans = await getRecentScans()
-            setRecentScans(storedScans)
-        }
-        initialize()
-    }, [])
-
-    // Fetch event data
-    useEffect(() => {
-        const fetchEventData = async () => {
-            try {
-                setLoading(true)
-                const data = await EventService.getById(eventId)
-                setEventData(data)
-            } catch (error) {
-                setError("Failed to load event data")
-                console.error("Error fetching event data:", error)
-            } finally {
-                setLoading(false)
+            if (eventId) {
+                const storedScans = await getRecentScans(eventId)
+                setRecentScans(storedScans)
             }
         }
+        initialize()
+    }, [eventId])
 
+    // Fetch event data
+    const fetchEventData = async () => {
+        try {
+            setLoading(true)
+            const data = await EventService.getById(eventId)
+            setEventData(data)
+            return data
+        } catch (error) {
+            setError("Failed to load event data")
+            console.error("Error fetching event data:", error)
+            return null
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
         if (eventId) {
             fetchEventData()
         }
     }, [eventId])
 
+    // Handle camera initialization and scanning
+    useEffect(() => {
+        // Clean up function
+        const cleanUpCamera = () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => {
+                    track.stop()
+                })
+                streamRef.current = null
+            }
+
+            if (scannerIntervalRef.current) {
+                clearInterval(scannerIntervalRef.current)
+                scannerIntervalRef.current = null
+            }
+        }
+
+        // Initialize camera
+        const initCamera = async () => {
+            cleanUpCamera()
+            setScannerError(null)
+            setQrDetected(false) // Reset QR detection state
+            setSendingToApi(false) // Reset API state
+
+            if (!showScanner || scanMode !== "camera" || !videoRef.current || !canvasRef.current) {
+                return
+            }
+
+            try {
+                // Start camera
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment" }
+                })
+
+                videoRef.current.srcObject = stream
+                streamRef.current = stream
+
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    if (videoRef.current) {
+                        videoRef.current.onloadedmetadata = () => {
+                            if (videoRef.current) videoRef.current.play().then(resolve)
+                        }
+                    }
+                })
+
+
+                console.log(`damn son`)
+                // Use native BarcodeDetector
+
+
+                // Use jsQR as fallback
+                const jsQrPromise = import('jsqr').then(module => module.default)
+                const jsQR = await jsQrPromise
+
+                // Set canvas dimensions
+                const video = videoRef.current
+                const canvas = canvasRef.current
+                canvas.width = video.videoWidth
+                canvas.height = video.videoHeight
+                const ctx = canvas.getContext('2d')
+                console.log(`${scanning}`)
+                // Start scanning
+                if (scanning) {
+                    scannerIntervalRef.current = setInterval(() => {
+                        console.log(`damn lil`)
+
+                        if (videoRef.current && canvasRef.current && ctx && !scanResult && !sendingToApi) {
+                            console.log(`damn fool`)
+
+                            // Draw video frame to canvas
+                            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height)
+
+                            // Get image data from canvas
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+                            // Scan for QR codes
+                            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                                inversionAttempts: "dontInvert",
+                            })
+
+                            // Process QR code if found
+                            if (code) {
+                                setTicketInput(code.data)
+                                setQrValue(code.data)
+                                setQrDetected(true)
+
+                                // Add a short delay to show the QR detected state before sending to API
+                                setTimeout(() => {
+                                    validateTicket(code.data)
+                                }, 500)
+                            }
+                        }
+                    }, 500)
+                }
+
+            } catch (error) {
+                setScannerError("Failed to access camera. Please check permissions.")
+                setShowScanner(false)
+            }
+        }
+
+        if (scanMode === "camera" && showScanner) {
+            initCamera()
+        } else {
+            cleanUpCamera()
+        }
+
+        // Clean up on component unmount
+        return cleanUpCamera
+    }, [scanMode, showScanner, scanning, scanResult, sendingToApi])
+
     // Calculate percentage of tickets scanned
     const scannedPercentage = eventData
-        ? Math.round((eventData.sales.ticketsScanned / eventData.sales.totalTicketSupply) * 100)
+        ? Math.round((eventData.sales.ticketsScanned / eventData.sales.ticketsSold) * 100)
         : 0
 
     // Format event date
@@ -100,136 +237,124 @@ export default function ScanTicketsForEvent() {
     const formattedEventDate = format(eventDate, "MMMM d, yyyy")
     const formattedEventTime = format(eventDate, "h:mm a")
 
-    // Initialize QR Scanner when camera mode is active and show scanner is true
-    useEffect(() => {
-        if (scanMode === "camera" && showScanner) {
-            // Import the library dynamically to avoid SSR issues
-            import("html5-qrcode")
-                .then(({ Html5Qrcode }) => {
-                    if (!qrScannerRef.current && videoRef.current) {
-                        qrScannerRef.current = new Html5Qrcode("qr-reader")
-
-                        const config = { fps: 10, qrbox: { width: 250, height: 250 } }
-
-                        if (scanning) {
-                            qrScannerRef.current.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
-                        }
-                    }
-                })
-                .catch((err) => {
-                    console.error("Error loading QR scanner library:", err)
-                })
-        }
-
-        return () => {
-            if (qrScannerRef.current && qrScannerRef.current.isScanning) {
-                qrScannerRef.current.stop().catch((err: any) => {
-                    console.error("Error stopping scanner:", err)
-                })
-            }
-        }
-    }, [scanMode, showScanner, scanning])
-
-    // Function to handle successful QR scan
-    const onScanSuccess = async (decodedText: string) => {
-        if (!scanning) return
-
-        // Stop scanning temporarily to process the result
-        if (qrScannerRef.current && qrScannerRef.current.isScanning) {
-            await qrScannerRef.current.pause()
-        }
-
-        setTicketInput(decodedText)
-        validateTicket(decodedText)
-    }
-
-    // Function to handle QR scan failure
-    const onScanFailure = (error: any) => {
-        // Just log the error, don't need to show to user for camera failures
-        console.warn(`QR scan error: ${error}`)
-    }
-
-    // Handle manual ticket submission
-    const handleSubmitTicket = () => {
-        if (!ticketInput) return
-        validateTicket(ticketInput)
-    }
-
     // Validate ticket via API
     const validateTicket = async (value: string) => {
-        setScanning(true)
-        setScanResult(null)
+        setScanning(true);
+        setScanResult(null);
+        // Set API indicator
+        setSendingToApi(true);
 
         try {
             // Use keyWord parameter for camera mode, ticketNumber for manual mode
-            const params = scanMode === "manual" ? { ticketNumber: value, eventId: eventId } : 
-            { keyWord: value, eventId: eventId }
+            const params = scanMode === "manual" ?
+                { ticketNumber: value, eventId: eventId } :
+                { keyWord: value, eventId: eventId };
 
-            const result = await ScanTicketService.scanTicket(params) 
+            const result = await ScanTicketService.scanTicket(params);
 
-            const success = result.success
-            const message = success ? "Ticket valid" : "Ticket already scanned"
+            // Use the message from the API response
+            const success = result.success;
+            const message = result.message || (success ? "Ticket valid" : "Ticket already scanned");
 
+            // For invalid tickets, API returns ticket: null, so we need to handle that
+            // Set up default values that will be used when ticket is null
+            let ticketType = "Unknown";
+            let holder = "Unknown";
+            let ticketId = value;
+
+            // Only try to access ticket properties if the ticket object exists
+            if (result.ticket) {
+                ticketId = result.ticket.ticketNumber || value;
+                ticketType = result.ticket.ticketType?.name || "Unknown";
+                holder = result.ticket.issuedTo?.name || "Unknown";
+            }
+
+            // Set scan result with the API response
             setScanResult({
                 success,
                 message,
                 ticket: result.ticket,
-            })
-            // Create scan record and save to IndexedDB
-            const ticketType = result.ticket.ticketType.name
-            const holder = result.ticket.issuedTo.name || "Unknown"
+            });
 
-            const newScan: RecentScan = {
-                id: result.ticket.ticketNumber,
+            // Create scan record using our safely extracted values
+            const newScan = {
+                id: ticketId,
+                eventId: eventId,
                 type: ticketType,
                 holder: holder,
-                status: success ? "valid" : "used",
+                // Determine the status more precisely
+                status: (success ? "valid" :
+                    result.alreadyScanned ? "used" :
+                        "invalid") as "valid" | "used" | "invalid",
                 timestamp: new Date().toISOString(),
                 scannedBy: staffName,
                 reason: !success ? message : undefined,
-            }
+            };
 
             // Save to IndexedDB
-            await saveScannedTicket(newScan)
+            await saveScannedTicket(newScan);
 
-            // Update local state
-            const updatedScans = await getRecentScans()
-            setRecentScans(updatedScans)
+            // Update local state with scans for this event only
+            const updatedScans = await getRecentScans(eventId);
+            setRecentScans(updatedScans);
+
+            // Refresh event data after successful scan to update the statistics
+            if (success) {
+                // Fetch updated event data without showing loading indicator
+                const updatedEventData = await updateEventDataSilently();
+
+                // If we couldn't get fresh data, update the local state with an estimated value
+                if (!updatedEventData && eventData) {
+                    const updatedData = {
+                        ...eventData,
+                        sales: {
+                            ...eventData.sales,
+                            ticketsScanned: eventData.sales.ticketsScanned + 1,
+                        }
+                    };
+                    setEventData(updatedData);
+                }
+            }
         } catch (error) {
-            console.error("Error validating ticket:", error)
+            // This catch block will only run for actual network/system errors,
+            // not for invalid tickets which are handled in the try block
+            console.error("Error validating ticket:", error);
+
+            const errorMessage = error instanceof Error ? error.message : "Error validating ticket";
 
             setScanResult({
                 success: false,
-                message: "Error validating ticket",
-            })
+                message: errorMessage,
+            });
 
-            // Save invalid scan to IndexedDB
-            const newScan: RecentScan = {
+            // Save invalid scan to IndexedDB with the event ID
+            const newScan = {
                 id: value,
+                eventId: eventId,
                 type: "Unknown",
                 holder: "Unknown",
-                status: "invalid",
+                status: "invalid" as "valid" | "used" | "invalid",
                 timestamp: new Date().toISOString(),
                 scannedBy: staffName,
-                reason: "Error validating ticket",
-            }
+                reason: errorMessage,
+            };
 
-            await saveScannedTicket(newScan)
-            const updatedScans = await getRecentScans()
-            setRecentScans(updatedScans)
+            await saveScannedTicket(newScan);
+            const updatedScans = await getRecentScans(eventId);
+            setRecentScans(updatedScans);
         } finally {
-            setScanning(false)
+            setScanning(false);
+            setSendingToApi(false);
+            setQrDetected(false);
 
-            // Resume scanning after a delay if in camera mode
-            if (scanMode === "camera" && qrScannerRef.current) {
+            // After processing, resume scanning after a delay
+            if (scanMode === "camera") {
                 setTimeout(() => {
-                    if (scanning && qrScannerRef.current) {
-                        qrScannerRef.current.resume()
-                    }
-                }, 3000)
+                    setScanResult(null);
+                }, 3000);
             }
         }
-    }
+    };
 
     // Toggle camera scanning
     const toggleScanning = () => {
@@ -237,23 +362,22 @@ export default function ScanTicketsForEvent() {
             // Stop scanning
             setScanning(false)
             setScanResult(null)
-
-            if (qrScannerRef.current && qrScannerRef.current.isScanning) {
-                qrScannerRef.current.stop().catch((err: any) => {
-                    console.error("Error stopping scanner:", err)
-                })
-            }
+            setQrDetected(false)
+            setSendingToApi(false)
         } else {
             // Start scanning
             setScanning(true)
             setScanResult(null)
             setTicketInput("")
-
-            if (qrScannerRef.current) {
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } }
-                qrScannerRef.current.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
-            }
+            setQrDetected(false)
+            setSendingToApi(false)
         }
+    }
+
+    // Handle manual ticket submission
+    const handleSubmitTicket = () => {
+        if (!ticketInput) return
+        validateTicket(ticketInput)
     }
 
     // Loading state
@@ -335,7 +459,62 @@ export default function ScanTicketsForEvent() {
                                     {/* Camera view / QR scanner */}
                                     <div className="aspect-video bg-black relative overflow-hidden">
                                         {showScanner ? (
-                                            <div id="qr-reader" className="w-full h-full"></div>
+                                            <div className="w-full h-full relative">
+                                                <video
+                                                    ref={videoRef}
+                                                    className="absolute inset-0 w-full h-full object-cover"
+                                                    playsInline
+                                                    muted
+                                                ></video>
+                                                <canvas
+                                                    ref={canvasRef}
+                                                    className="absolute inset-0 w-full h-full opacity-0"
+                                                ></canvas>
+                                                {/* QR Code finder overlay */}
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <div className={`w-64 h-64 border-4 ${qrDetected ? 'border-green-400 bg-green-400/10' : 'border-white/50'} rounded-lg flex items-center justify-center transition-colors duration-300`}>
+                                                        <div className={`w-48 h-48 border-2 border-dashed ${qrDetected ? 'border-green-400' : 'border-white/70'} rounded transition-colors duration-300`}></div>
+                                                    </div>
+                                                </div>
+                                                {scannerError && (
+                                                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                                                        <div className="text-center p-4">
+                                                            <AlertCircle className="h-10 w-10 mx-auto mb-2 text-red-500" />
+                                                            <p className="text-white mb-3">{scannerError}</p>
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    setScannerError(null)
+                                                                    setShowScanner(false)
+                                                                }}
+                                                            >
+                                                                Try Again
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* QR Code Detected - Show the code value and indicator */}
+                                                {qrDetected && !sendingToApi && !scanResult && (
+                                                    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                                                        <div className="bg-green-800/90 text-white px-4 py-2 rounded-full flex items-center shadow-lg">
+                                                            <Check className="h-4 w-4 mr-2 text-green-400" />
+                                                            <span className="text-sm font-medium">QR Code Detected</span>
+                                                            <ArrowRight className="h-4 w-4 ml-2 text-green-400 animate-pulse" />
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* API Processing Indicator */}
+                                                {sendingToApi && !scanResult && (
+                                                    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                                                        <div className="bg-blue-800/90 text-white px-4 py-2 rounded-full flex items-center shadow-lg">
+                                                            <Loader2 className="h-4 w-4 mr-2 text-blue-400 animate-spin" />
+                                                            <span className="text-sm font-medium">Validating Ticket...</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         ) : (
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <div className="text-center p-4 sm:p-6">
@@ -343,7 +522,14 @@ export default function ScanTicketsForEvent() {
                                                     <p className="text-xs sm:text-sm text-muted-foreground">Camera preview will appear here</p>
                                                     <Button
                                                         className="mt-3 sm:mt-4 text-xs sm:text-sm h-8 sm:h-9"
-                                                        onClick={() => setShowScanner(true)}
+                                                        onClick={() => {
+                                                            setShowScanner(true);
+                                                            setScanning(true); // Also start scanning immediately
+                                                            setScanResult(null);
+                                                            setTicketInput("");
+                                                            setQrDetected(false);
+                                                            setSendingToApi(false);
+                                                        }}
                                                     >
                                                         Enable Camera
                                                     </Button>
@@ -585,10 +771,10 @@ export default function ScanTicketsForEvent() {
                                             >
                                                 <div
                                                     className={`rounded-full p-1 flex-shrink-0 ${scan.status === "valid"
-                                                            ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                                                            : scan.status === "used"
-                                                                ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
-                                                                : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                                        ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+                                                        : scan.status === "used"
+                                                            ? "bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
+                                                            : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                                                         }`}
                                                 >
                                                     {scan.status === "valid" ? (

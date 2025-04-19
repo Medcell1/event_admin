@@ -1,31 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format, parseISO, addHours, isAfter, isBefore } from "date-fns"
+import { format, isAfter, isBefore } from "date-fns"
 import Image from "next/image"
 import Link from "next/link"
-import {
-  ArrowRight,
-  Calendar,
-  Clock,
-  Filter,
-  MapPin,
-  QrCode,
-  Search,
-  Settings,
-  Ticket,
-  User,
-  Users,
-} from "lucide-react"
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ArrowRight, Calendar, Clock, MapPin, QrCode, Search, Ticket, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TodayEvent } from "@/@types"
+import type { TodayEvent } from "@/@types"
 import { ROUTES } from "@/constants/routes"
 
 // Get current date for the dashboard
@@ -33,7 +19,7 @@ const today = new Date()
 const formattedToday = format(today, "EEEE, MMMM d, yyyy")
 
 type EventWithStatus = TodayEvent & {
-  status: 'active' | 'upcoming' | 'ended'
+  status: "active" | "upcoming" | "ended"
 }
 
 interface TodaysEventsProps {
@@ -43,41 +29,36 @@ interface TodaysEventsProps {
   currentPage: number
 }
 
-export default function TodaysEvents({
-  initialEvents,
-  totalEvents,
-  totalPages,
-  currentPage
-}: TodaysEventsProps) {
+export default function TodaysEvents({ initialEvents, totalEvents, totalPages, currentPage }: TodaysEventsProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [events, setEvents] = useState<EventWithStatus[]>([])
 
   useEffect(() => {
-    const processedEvents = initialEvents.map(event => {
+    const processedEvents = initialEvents.map((event) => {
       const eventDate = new Date(event.date)
 
       const endDate = new Date(eventDate)
       endDate.setHours(endDate.getHours() + 4)
-      
+
       const now = new Date()
-      
-      let status: 'active' | 'upcoming' | 'ended'
-      
+
+      let status: "active" | "upcoming" | "ended"
+
       if (isBefore(now, eventDate)) {
-        status = 'upcoming'
+        status = "upcoming"
       } else if (isAfter(now, endDate)) {
-        status = 'ended'
+        status = "ended"
       } else {
-        status = 'active'
+        status = "active"
       }
-      
+
       return {
         ...event,
-        status
+        status,
       }
     })
-    
+
     setEvents(processedEvents)
   }, [initialEvents])
 
@@ -97,14 +78,14 @@ export default function TodaysEvents({
     const eventDate = new Date(event.date)
     const now = new Date()
 
-    if (event.status === 'upcoming') {
+    if (event.status === "upcoming") {
       const hoursUntilStart = Math.round((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60))
       return {
         text: `Starts in ${hoursUntilStart} hour${hoursUntilStart !== 1 ? "s" : ""}`,
         color: "bg-blue-500",
         variant: "default",
       }
-    } else if (event.status === 'ended') {
+    } else if (event.status === "ended") {
       return {
         text: "Ended",
         color: "bg-gray-500",
@@ -120,35 +101,40 @@ export default function TodaysEvents({
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-background px-3 rounded-lg py-3">
+    <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4 max-w-7xl">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-6 gap-2 sm:gap-4 bg-background px-3 rounded-lg py-2 sm:py-3">
         <div>
-          <h1 className="text-3xl font-bold">Today's Events</h1>
-          <p className="text-muted-foreground">{formattedToday}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Today's Events</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">{formattedToday}</p>
         </div>
-        
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search events by name or location..."
-                  className="pl-8"
+                  placeholder="Search events..."
+                  className="pl-8 text-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               <div className="flex gap-2">
-                             <Tabs defaultValue="all" className="w-full sm:w-auto" onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="active">Active</TabsTrigger>
-                    <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                <Tabs defaultValue="all" className="w-full sm:w-auto" onValueChange={setActiveTab}>
+                  <TabsList className="grid w-full grid-cols-3 h-9 sm:h-10">
+                    <TabsTrigger value="all" className="text-xs sm:text-sm">
+                      All
+                    </TabsTrigger>
+                    <TabsTrigger value="active" className="text-xs sm:text-sm">
+                      Active
+                    </TabsTrigger>
+                    <TabsTrigger value="upcoming" className="text-xs sm:text-sm">
+                      Upcoming
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -171,9 +157,10 @@ export default function TodaysEvents({
           ) : (
             filteredEvents.map((event) => {
               const status = getEventStatus(event)
-              const scannedPercentage = event.sales.ticketsSold > 0 
-                ? Math.round((event.sales.ticketsScanned / event.sales.ticketsSold) * 100) 
-                : 0
+              const scannedPercentage =
+                event.sales.ticketsSold > 0
+                  ? Math.round((event.sales.ticketsScanned / event.sales.ticketsSold) * 100)
+                  : 0
 
               return (
                 <Card key={event._id} className="overflow-hidden">
@@ -189,80 +176,84 @@ export default function TodaysEvents({
                         {status.text}
                       </Badge>
                     </div>
-                    <div className="flex-1 p-6">
+                    <div className="flex-1 p-4 sm:p-6">
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                        <div>
-                          <h2 className="text-2xl font-bold">{event.name}</h2>
-                          <div dangerouslySetInnerHTML={{ __html: event.description }} className="text-muted-foreground" />
+                        <div className="flex-1">
+                          <h2 className="text-xl sm:text-2xl font-bold line-clamp-2">{event.name}</h2>
+                          <div
+                            dangerouslySetInnerHTML={{ __html: event.description }}
+                            className="text-muted-foreground text-sm sm:text-base line-clamp-2 mt-1"
+                          />
 
                           <div className="flex flex-col sm:flex-row gap-4 mt-4">
                             <div className="flex items-center gap-2">
-                              <Clock className="h-5 w-5 text-muted-foreground" />
+                              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                               <div>
-                                <p className="font-medium">{format(new Date(event.date), "h:mm a")}</p>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="font-medium text-sm sm:text-base">
+                                  {format(new Date(event.date), "h:mm a")}
+                                </p>
+                                <p className="text-xs sm:text-sm text-muted-foreground">
                                   {format(new Date(event.date), "EEEE, MMMM d, yyyy")}
                                 </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <MapPin className="h-5 w-5 text-muted-foreground" />
+                              <MapPin className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground flex-shrink-0" />
                               <div>
-                                <p className="font-medium">{event.location}</p>
+                                <p className="font-medium text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">
+                                  {event.location}
+                                </p>
                               </div>
                             </div>
                           </div>
-
-                         
                         </div>
 
-                        <div className="flex flex-col items-end gap-2 mt-4 md:mt-0">
+                        <div className="flex flex-row sm:flex-col justify-between sm:items-end gap-2 mt-4 md:mt-0">
                           <div className="flex items-center gap-2">
                             <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Tickets Sold</p>
-                              <p className="font-medium">
+                              <p className="text-xs sm:text-sm text-muted-foreground">Tickets Sold</p>
+                              <p className="text-sm sm:text-base font-medium">
                                 {event.sales.ticketsSold} / {event.sales.totalTicketSupply}
                               </p>
                             </div>
-                            <div className="bg-primary/10 p-2 rounded-full">
-                              <Ticket className="h-5 w-5 text-primary" />
+                            <div className="bg-primary/10 p-1.5 sm:p-2 rounded-full">
+                              <Ticket className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
                             <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Checked In</p>
-                              <p className="font-medium">
+                              <p className="text-xs sm:text-sm text-muted-foreground">Checked In</p>
+                              <p className="text-sm sm:text-base font-medium">
                                 {event.sales.ticketsScanned} / {event.sales.ticketsSold}
                               </p>
                             </div>
-                            <div className="bg-primary/10 p-2 rounded-full">
-                              <Users className="h-5 w-5 text-primary" />
+                            <div className="bg-primary/10 p-1.5 sm:p-2 rounded-full">
+                              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="mt-6">
-                        <div className="flex justify-between mb-2">
-                          <span className="text-sm font-medium">Check-in Progress</span>
-                          <span className="text-sm font-medium">
+                      <div className="mt-4 sm:mt-6">
+                        <div className="flex justify-between mb-1 sm:mb-2">
+                          <span className="text-xs sm:text-sm font-medium">Check-in Progress</span>
+                          <span className="text-xs sm:text-sm font-medium">
                             {event.sales.ticketsScanned} / {event.sales.ticketsSold}
                           </span>
                         </div>
-                        <Progress value={scannedPercentage} className="h-2" />
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <Progress value={scannedPercentage} className="h-1.5 sm:h-2" />
+                        <p className="text-xs text-muted-foreground mt-1 sm:mt-2">
                           {scannedPercentage}% of attendees checked in
                         </p>
                       </div>
 
-                      <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
-                      
-                        <Button asChild>
+                      <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-2 sm:gap-3 justify-end">
+                        <Button asChild size="sm" className="w-full sm:w-auto">
                           <Link href={ROUTES.DASHBOARD.SCAN.SCAN_EVENT(event._id)}>
-                            <QrCode className="mr-2 h-4 w-4" />
+                            <QrCode className="mr-1.5 h-3.5 w-3.5 sm:mr-2 sm:h-4 sm:w-4" />
                             Scan Tickets
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            <ArrowRight className="ml-1.5 h-3.5 w-3.5 sm:ml-2 sm:h-4 sm:w-4" />
                           </Link>
                         </Button>
                       </div>
@@ -275,16 +266,17 @@ export default function TodaysEvents({
         </div>
 
         {totalPages > 1 && (
-          <div className="flex justify-between items-center mt-6">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-4 sm:mt-6 gap-3 sm:gap-0">
+            <p className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
               Showing {filteredEvents.length} of {totalEvents} events
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 w-full sm:w-auto justify-between sm:justify-end order-1 sm:order-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={currentPage <= 1}
                 asChild
+                className="text-xs sm:text-sm px-2 sm:px-3"
               >
                 <Link href={`?page=${currentPage - 1}`}>Previous</Link>
               </Button>
@@ -293,6 +285,7 @@ export default function TodaysEvents({
                 size="sm"
                 disabled={currentPage >= totalPages}
                 asChild
+                className="text-xs sm:text-sm px-2 sm:px-3"
               >
                 <Link href={`?page=${currentPage + 1}`}>Next</Link>
               </Button>

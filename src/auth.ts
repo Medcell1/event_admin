@@ -62,7 +62,7 @@ export const authConfig: NextAuthConfig = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifier: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -70,15 +70,12 @@ export const authConfig: NextAuthConfig = {
           const response = await axios.post(
             `${process.env.NEXT_PUBLIC_SERVER_URL}/auth/login`,
             {
-              email: credentials?.email,
+              identifier: credentials?.identifier,
               password: credentials?.password,
             }
           );
 
-          console.log("Login payload:", {
-            email: credentials?.email,
-            password: credentials?.password,
-          });
+     
 
           console.log("API Response:", response.data);
 
